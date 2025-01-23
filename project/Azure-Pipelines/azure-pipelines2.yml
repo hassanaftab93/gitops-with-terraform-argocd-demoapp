@@ -31,7 +31,7 @@ variables:
   - name: containerRegistrySvcConn
     value: 'rndacrteo-svcconn'
   - name: MyAzureDevOpsPAT
-    value: '8dz7BhCle1d3zNmSyRqmISrMxIsodeTpZc8D8t0hP3WWvz3fnfSMJQQJ99BAACAAAAAkrQDNAAASAZDO2nwc'
+    value: '<TOKEN_HERE>'
   - name: repositoryUrl
     value: 'https://$(MyAzureDevOpsPAT)@dev.azure.com/myteo/Cloud/_git/demo-app-manifests'
   - name: gitOpsBranch

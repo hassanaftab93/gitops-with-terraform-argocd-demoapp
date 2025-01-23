@@ -1,0 +1,114 @@
+trigger:
+  branches:
+    include:
+      - feature/*
+  paths:
+    include:
+      - Azure-Pipelines/azure-pipelines.yml
+      - Docker/Dockerfile.prod
+      - demo-app/*
+    exclude:
+      - README.md
+
+pool:
+  name: Azure Pipelines
+  vmImage: 'ubuntu-latest'
+
+variables:
+
+  - name: system.Debug
+    ${{ if eq(variables['Build.Reason'], 'Manual') }}:
+      value: true
+    ${{ if ne(variables['Build.Reason'], 'Manual') }}:
+      value: false
+
+  - name: imageName
+    value: 'demo-app'
+  - name: DockerfilePath
+    value: 'Docker/Dockerfile.prod'
+  - name: DockerCommand
+    value: 'buildAndPush'
+  - name: containerRegistrySvcConn
+    value: 'rndacrteo-svcconn'
+  - name: MyAzureDevOpsPAT
+    value: '8dz7BhCle1d3zNmSyRqmISrMxIsodeTpZc8D8t0hP3WWvz3fnfSMJQQJ99BAACAAAAAkrQDNAAASAZDO2nwc'
+  - name: repositoryUrl
+    value: 'https://$(MyAzureDevOpsPAT)@dev.azure.com/myteo/Cloud/_git/demo-app-manifests'
+  - name: gitOpsBranch
+    value: 'main'
+  - name: applicationName
+    value: 'demo-app'
+
+stages:
+
+  - stage: BuildStage
+    displayName: 'Build Stage'
+    condition: succeededOrFailed()
+
+    jobs:
+      - job: BuildJob
+
+        steps:
+
+          - task: Docker@2
+            displayName: 'Build and Push Docker Image'
+            inputs:
+              containerRegistry: '$(containerRegistrySvcConn)'
+              repository: '$(imageName)'
+              command: '$(DockerCommand)'
+              Dockerfile: '$(DockerfilePath)'
+              buildContext: '.'
+              tags: |
+                latest
+                $(Build.BuildId)
+
+  - stage: UpdateStage
+    displayName: 'Update Stage'
+    dependsOn: BuildStage
+
+    jobs:
+      - job: UpdateJob
+
+        steps:
+
+          - script: |
+              echo "Cloning the repository to update manifests..."
+              
+              # Set up Git credentials for Azure DevOps using HTTPS and the Personal Access Token (PAT)
+              
+              git config --global credential.helper store
+              git config --global user.name "Azure Pipelines"
+              git config --global user.email "hassan.aftab@teo-intl.com"
+
+              echo "https://$(MyAzureDevOpsPAT)@dev.azure.com" > ~/.git-credentials
+
+              # Clone the repository and checkout the specified branch
+              
+              git clone $(repositoryUrl)
+              cd demo-app-manifests
+              git checkout $(gitOpsBranch)
+              
+              echo "Updating the deployment.yaml file with Build ID $(Build.BuildId)..."\
+
+              ls -la
+
+              # Dynamically replace the tag in the deployment.yaml file
+              
+              sed -i 's|\(image:.*\):.*|\1:$(Build.BuildId)|' manifests/main/$(applicationName)/deployment.yaml
+              
+              # Check if there are any changes to commit
+              
+              git diff --exit-code manifests/main/$(applicationName)/deployment.yaml
+              if [ $? -eq 0 ]; then
+                echo "No changes detected in deployment.yaml, skipping commit and push."
+              else
+                # If there are changes, commit and push them
+                git add manifests/main/$(applicationName)/deployment.yaml
+                git commit -m "Update deployment.yaml with Build ID $(Build.BuildId)"
+                git push origin $(gitOpsBranch)
+              fi
+            displayName: 'Clone repo and update deployment.yaml with Build ID'
+            env:
+              Build.BuildId: $(Build.BuildId)
+              applicationName: $(applicationName)
+

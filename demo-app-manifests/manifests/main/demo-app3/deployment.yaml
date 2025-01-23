@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-app3
+  labels:
+    app: demo-app3
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-app3
+  template:
+    metadata:
+      labels:
+        app: demo-app3
+    spec:
+      containers:
+      - name: demo-app3
+        image: rndacrteo.azurecr.io/demo-app3:36703
+        ports:
+        - containerPort: 80

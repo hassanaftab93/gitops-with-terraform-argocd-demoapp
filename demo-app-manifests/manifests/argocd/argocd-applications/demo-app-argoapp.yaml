@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: demo-app-microservice1
+  namespace: argocd
+spec:
+  project: demo-app-project
+  source:
+    repoURL: git@ssh.dev.azure.com:v3/myteo/Cloud/demo-app-manifests
+    path: manifests/main/demo-app
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - Validate=true
+    - CreateNamespace=false
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=false
+    - Replace=true
+    - ServerSideApply=false

@@ -1,0 +1,32 @@
+# Step1: Setup Argo CLI
+# Step2: Change ArgoCD Password
+# Step3: Login to ArgoCD CLI
+# Step4: Create Repo connection in ArgoCD
+# Step5: Create Project in ArgoCD
+# Step6: Apply Master Application YAML
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: demo-app-master
+  namespace: argocd
+spec:
+  project: demo-app-project
+  source:
+    repoURL: git@ssh.dev.azure.com:v3/myteo/Cloud/demo-app-manifests
+    path: manifests/argocd/argocd-applications
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - Validate=true
+    - CreateNamespace=false
+    - PruneLast=true
+    - ApplyOutOfSyncOnly=false
+    - Replace=true
+    - ServerSideApply=false
